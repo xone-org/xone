@@ -13,13 +13,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useWalletBalances } from "@/hooks/use-wallet-balances";
+import { useI18n } from "@/hooks/use-i18n";
 import { useA2AStore } from "@/stores/a2a";
 import { cn } from "@/lib/utils";
 
 /**
- * 将钱包 USDC 划入 A2A 可支付余额。
+ * Moves wallet USDC into the service spending balance.
  */
 export function A2AFundPage() {
+  const { t } = useI18n();
   const { usdc } = useWalletBalances();
   const a2aBalance = useA2AStore((s) => s.a2aBalance);
   const fundFromWallet = useA2AStore((s) => s.fundFromWallet);
@@ -43,11 +45,11 @@ export function A2AFundPage() {
     event.preventDefault();
     const amount = Number(fundAmount);
     if (!Number.isFinite(amount) || amount <= 0) {
-      showToast("err", "请输入有效金额");
+      showToast("err", t("a2aFund.invalid"));
       return;
     }
     if (amount > usdc) {
-      showToast("err", "钱包可用 USDC 不足");
+      showToast("err", t("a2aFund.insufficient"));
       return;
     }
     setFundOpen(true);
@@ -64,16 +66,15 @@ export function A2AFundPage() {
       showToast("err", error);
       return;
     }
-    showToast("ok", `已转入 ${amount} USDC 到 A2A 余额`);
+    showToast("ok", t("a2aFund.ok", { amount }));
   }
 
   return (
-    <div className="mx-auto max-w-lg space-y-6 animate-in md:mx-0">
-      <PageHeader icon={ArrowRightLeft} title="A2A 转入" tone="sky" />
+    <div className="mx-auto max-w-lg space-y-6 animate-in">
+      <PageHeader icon={ArrowRightLeft} title={t("a2aFund.title")} tone="slate" />
 
       <p className="text-sm text-muted-foreground">
-        将钱包 USDC 划入 A2A 可支付余额，供 Agent 在限额内自动结算。当前可支付{" "}
-        {a2aBalance.toFixed(2)} USDC。
+        {t("a2aFund.intro", { amount: a2aBalance.toFixed(2) })}
       </p>
 
       {toast ? (
@@ -94,21 +95,21 @@ export function A2AFundPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ArrowRightLeft className="h-4 w-4" aria-hidden />
-            从钱包转入 A2A
+            {t("a2aFund.cardTitle")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={onFundSubmit}>
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="fund-amount">
-                转入金额（USDC）· 链上可用 {usdc.toFixed(2)}
+                {t("a2aFund.amount", { amount: usdc.toFixed(2) })}
               </label>
               <Input
                 id="fund-amount"
                 inputMode="decimal"
                 value={fundAmount}
                 onChange={(e) => setFundAmount(e.target.value)}
-                placeholder="例如 1"
+                placeholder={t("a2aFund.placeholder")}
               />
             </div>
             <div className="flex flex-wrap gap-2">
@@ -129,12 +130,12 @@ export function A2AFundPage() {
                 variant="ghost"
                 onClick={() => setFundAmount(String(usdc))}
               >
-                全部
+                {t("a2aFund.all")}
               </Button>
             </div>
             <Button type="submit" className="w-full">
               <ArrowRightLeft className="h-4 w-4" aria-hidden />
-              确认转入
+              {t("a2aFund.submit")}
             </Button>
           </form>
         </CardContent>
@@ -143,23 +144,21 @@ export function A2AFundPage() {
       <Dialog open={fundOpen} onOpenChange={setFundOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>确认转入 A2A</DialogTitle>
-            <DialogDescription>
-              将从钱包可用余额划入 A2A 可支付余额。
-            </DialogDescription>
+            <DialogTitle>{t("a2aFund.confirmTitle")}</DialogTitle>
+            <DialogDescription>{t("a2aFund.confirmBody")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-1 text-sm">
-            <ConfirmRow label="转入金额" value={`${fundAmount} USDC`} />
-            <ConfirmRow label="链上可用" value={`${usdc.toFixed(2)} USDC`} />
-            <ConfirmRow label="用途" value="A2A 可支付" />
+            <ConfirmRow label={t("a2aFund.confirmAmount")} value={`${fundAmount} USDC`} />
+            <ConfirmRow label={t("a2aFund.confirmAvailable")} value={`${usdc.toFixed(2)} USDC`} />
+            <ConfirmRow label={t("a2aFund.confirmUse")} value={t("a2aFund.confirmUseValue")} />
           </div>
           <DialogFooter className="sm:flex-col">
             <Button type="button" className="w-full" onClick={() => void onConfirmFund()}>
               <ArrowRightLeft className="h-4 w-4" aria-hidden />
-              确认转入
+              {t("a2aFund.confirm")}
             </Button>
             <Button type="button" variant="outline" className="w-full" onClick={() => setFundOpen(false)}>
-              取消
+              {t("a2aFund.cancel")}
             </Button>
           </DialogFooter>
         </DialogContent>

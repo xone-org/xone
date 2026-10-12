@@ -231,23 +231,17 @@ body {
   color: #18181b;
 }
 
-/* Chat-only warm accent (Claude-ish, scoped) */
-.chat-warm-chip {
-  border-color: #ecd9cf;
-  background: #f8eee8;
-  color: #9a3412;
+.chat-warm-chip,
+.chat-warm-bot {
+  border-color: var(--color-border);
+  background: var(--color-muted);
+  color: var(--color-foreground);
 }
 
 .chat-warm-user {
   border-color: #c96442;
   background: #c96442;
   color: #faf8f5;
-}
-
-.chat-warm-bot {
-  border-color: #ecd9cf;
-  background: #f8eee8;
-  color: #9a3412;
 }
 
 .surface-card {

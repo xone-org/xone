@@ -15,6 +15,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useClientPagination } from "@/hooks/use-client-pagination";
+import { useI18n } from "@/hooks/use-i18n";
+import type { MessageKey } from "@/lib/i18n/messages";
 import type { LedgerRecord } from "@/stores/a2a";
 
 type LedgerTablePageProps = {
@@ -39,7 +41,9 @@ export function LedgerTablePage({
   signedAmount = true,
   showTitleColumn = true,
 }: LedgerTablePageProps) {
+  const { t, locale } = useI18n();
   const pager = useClientPagination(rows);
+  const dateLocale = locale === "zh" ? "zh-CN" : "en";
 
   return (
     <div className="w-full max-w-5xl space-y-6 animate-in md:mx-0">
@@ -58,19 +62,19 @@ export function LedgerTablePage({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>时间</TableHead>
-                    {showTitleColumn ? <TableHead>标题</TableHead> : null}
-                    <TableHead>对方</TableHead>
-                    <TableHead>金额</TableHead>
-                    <TableHead>状态</TableHead>
-                    <TableHead>交易哈希</TableHead>
+                    <TableHead>{t("ledger.time")}</TableHead>
+                    {showTitleColumn ? <TableHead>{t("ledger.titleCol")}</TableHead> : null}
+                    <TableHead>{t("ledger.counterparty")}</TableHead>
+                    <TableHead>{t("ledger.amount")}</TableHead>
+                    <TableHead>{t("ledger.status")}</TableHead>
+                    <TableHead>{t("ledger.tx")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {pager.pageItems.map((item) => (
                     <TableRow key={item.id} className="message-in">
                       <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                        {new Date(item.createdAt).toLocaleString("zh-CN")}
+                        {new Date(item.createdAt).toLocaleString(dateLocale)}
                       </TableCell>
                       {showTitleColumn ? (
                         <TableCell className="font-medium">{item.title}</TableCell>
@@ -81,7 +85,7 @@ export function LedgerTablePage({
                         {item.amount} {item.asset}
                       </TableCell>
                       <TableCell>
-                        <StatusBadge status={item.status} />
+                        <StatusBadge status={item.status} label={ledgerStatusLabel(item.status, t)} />
                       </TableCell>
                       <TableCell className="max-w-[240px]">
                         <TxHashCell note={item.note} />
@@ -140,16 +144,40 @@ function TxHashCell({ note }: { note: string }) {
   );
 }
 
+const STATUS_KEYS: Record<string, MessageKey> = {
+  success: "ledger.status.success",
+  confirmed: "ledger.status.confirmed",
+  pending: "ledger.status.pending",
+  submitted: "ledger.status.submitted",
+  failed: "ledger.status.failed",
+  blocked: "ledger.status.blocked",
+  rejected: "ledger.status.rejected",
+};
+
+/**
+ * User-facing label for a ledger status, falling back to the raw value.
+ * @param status - Ledger status string
+ * @param t - Translator
+ */
+function ledgerStatusLabel(
+  status: string,
+  t: (key: MessageKey) => string,
+): string {
+  const key = STATUS_KEYS[status];
+  return key ? t(key) : status;
+}
+
 /**
  * Compact status badge for ledger rows.
  * @param status - Ledger status string
+ * @param label - Translated status
  */
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, label }: { status: string; label: string }) {
   const variant =
     status === "confirmed" || status === "success"
       ? "default"
       : status === "failed" || status === "rejected"
         ? "destructive"
         : "secondary";
-  return <Badge variant={variant}>{status}</Badge>;
+  return <Badge variant={variant}>{label}</Badge>;
 }

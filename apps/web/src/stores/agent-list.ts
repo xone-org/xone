@@ -24,6 +24,20 @@ export const SHARED_AGENT_CATALOG: Omit<CatalogAgent, "enabled">[] = [
     description:
       "Use Bocha web search to answer the user’s factual / current-events question. Pass the question as pay_x402.query. Price is AI-estimated between $0.01–$0.10 USDC per call.",
   },
+  {
+    id: "agent-weather",
+    name: "Weather",
+    url: "https://xone-x402-seller.tskwangyi.workers.dev/weather",
+    description:
+      "Paid weather report agent (Base Sepolia x402). Prefer when the user asks about weather, temperature, or forecast.",
+  },
+  {
+    id: "agent-text-generate",
+    name: "Text Generate",
+    url: "https://xone-x402-seller.tskwangyi.workers.dev/api/generate",
+    description:
+      "Paid text generation demo agent (x402 upto pricing on Base Sepolia). Use for short generate / sample content requests.",
+  },
 ];
 
 type AgentListState = {

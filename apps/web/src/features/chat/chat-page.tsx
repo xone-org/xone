@@ -33,6 +33,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useWalletAccount } from "@/hooks/use-wallet-account";
 import { useI18n } from "@/hooks/use-i18n";
+import type { MessageKey } from "@/lib/i18n/messages";
 import {
   clearAssistantChatSession,
   clearLocalAssistantChat,
@@ -530,7 +531,7 @@ function ChatPanel({
       </div>
 
       <div className="flex shrink-0 flex-wrap gap-2 text-xs">
-        <span className="chat-warm-chip inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 font-medium">
+        <span className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-muted/60 px-2.5 py-1 font-medium">
           <Zap className="h-3 w-3" aria-hidden />
           {t("chat.x402Enabled", { count: x402Services.length })}
         </span>
@@ -626,7 +627,6 @@ function ChatPanel({
                 type="button"
                 size="sm"
                 variant="outline"
-                className="chat-warm-chip border hover:opacity-90"
                 disabled={composerLocked}
                 onClick={() => setInput(hint)}
               >
@@ -676,7 +676,7 @@ function MessageBubble({
       )}
     >
       <div
-        className="flex size-9 shrink-0 items-center justify-center rounded-full border chat-warm-bot"
+        className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-foreground"
         aria-hidden
       >
         {isUser ? <UserRound className="size-4" /> : <Bot className="size-4" />}
@@ -880,9 +880,7 @@ function MessageBubble({
                 key={`${message.id}-tool-${index}`}
                 className="text-xs text-muted-foreground"
               >
-                {state === "output-available"
-                  ? t("chat.toolDone", { tool: toolName })
-                  : t("chat.toolRunning", { tool: toolName })}
+                {toolStatusCopy(toolName, state === "output-available", t)}
               </p>
             );
           }
@@ -892,6 +890,29 @@ function MessageBubble({
       </div>
     </div>
   );
+}
+
+const TOOL_LABELS: Record<string, MessageKey> = {
+  list_context: "chat.tool.listContext",
+  pay_x402: "chat.tool.pay",
+  request_x402_choice: "chat.tool.chooseService",
+  request_wallet_choice: "chat.tool.chooseWallet",
+};
+
+/**
+ * User-facing status for a tool step, without the raw tool id.
+ * @param toolName - Model tool name
+ * @param done - Whether the tool already returned
+ * @param t - Translator
+ */
+function toolStatusCopy(
+  toolName: string,
+  done: boolean,
+  t: (key: MessageKey, vars?: Record<string, string | number>) => string,
+): string {
+  const key = TOOL_LABELS[toolName];
+  if (done) return t(key ?? "chat.tool.stepDone");
+  return t("chat.toolRunning", { label: t(key ?? "chat.tool.step") });
 }
 
 type ThinkingIndicatorProps = {
@@ -906,7 +927,7 @@ function ThinkingIndicator({ label }: ThinkingIndicatorProps) {
   return (
     <div className="message-in flex gap-3" aria-live="polite" aria-busy="true">
       <div
-        className="flex size-9 shrink-0 items-center justify-center rounded-full border chat-warm-bot"
+        className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-foreground"
         aria-hidden
       >
         <Bot className="size-4" />

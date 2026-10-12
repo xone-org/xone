@@ -17,20 +17,27 @@ const USDC_DECIMALS = 6;
 /** Allowed merchant origins to avoid open SSRF from agent keys. */
 const ALLOWED_MERCHANT_ORIGINS = new Set([
   "https://xone-x402-seller.tskwangyi.workers.dev",
+  "https://x402.goldrush.dev",
+  "https://pf-x402-api-testnet.ahndohun1.workers.dev",
   "http://localhost:4021",
   "http://127.0.0.1:4021",
 ]);
 
 /**
- * Appends a search query to an x402 merchant URL (`?q=`).
+ * Appends a search / lookup query to an x402 merchant URL.
+ * Most resources use `?q=`; Korean business status uses `?b_no=`.
  * @param merchantUrl - Base catalog URL
- * @param query - Optional user question for search agents
+ * @param query - Optional user question or lookup key
  */
 export function withMerchantQuery(merchantUrl: string, query?: string): string {
   const q = query?.trim();
   if (!q) return merchantUrl;
   const url = new URL(merchantUrl);
-  url.searchParams.set("q", q);
+  if (url.pathname.includes("/business/status")) {
+    url.searchParams.set("b_no", q.replace(/\D/g, "") || q);
+  } else {
+    url.searchParams.set("q", q);
+  }
   return url.toString();
 }
 

@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { QRCodeSVG } from "qrcode.react";
 import { useWalletAccount } from "@/hooks/use-wallet-account";
+import { useI18n } from "@/hooks/use-i18n";
 
 /**
- * 收款页：展示地址 + 二维码。
+ * Receive screen: address and QR code.
  */
 export function ReceivePage() {
+  const { t } = useI18n();
   const { address } = useWalletAccount();
   const walletAddress = address ?? "";
   const [copied, setCopied] = useState(false);
@@ -27,32 +29,32 @@ export function ReceivePage() {
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-6 animate-in">
-      <PageHeader icon={QrCode} title="收款" className="justify-center" tone="sky" />
+      <PageHeader icon={QrCode} title={t("receive.title")} tone="slate" />
 
       <Card className="fade-up">
         <CardHeader>
-          <CardTitle>我的地址</CardTitle>
+          <CardTitle>{t("receive.cardTitle")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-center text-sm text-muted-foreground">
-            仅向此地址转入 {DEFAULT_CHAIN.name} 上的资产。发送到错误网络可能导致资产丢失。
+          <p className="text-sm text-muted-foreground">
+            {t("receive.warning", { chain: DEFAULT_CHAIN.name })}
           </p>
 
           {walletAddress ? (
             <div className="flex items-center gap-3 rounded-md border border-border bg-muted p-4">
               <AddressIdenticon address={walletAddress} />
               <div className="min-w-0 flex-1">
-                <p className="text-xs text-muted-foreground">钱包地址</p>
+                <p className="text-xs text-muted-foreground">{t("receive.address")}</p>
                 <p className="mt-1 break-all font-mono text-sm">{walletAddress}</p>
               </div>
             </div>
           ) : (
             <div className="rounded-md border border-border bg-muted p-4 text-center text-sm text-muted-foreground">
-              未连接钱包
+              {t("receive.notConnected")}
             </div>
           )}
 
-          <div className="flex items-center justify-center rounded-md border border-border bg-white p-6 transition-transform duration-300 hover:scale-[1.01]">
+          <div className="flex items-center justify-center rounded-md border border-border bg-white p-6">
             {walletAddress ? (
               <QRCodeSVG
                 value={walletAddress}
@@ -61,22 +63,22 @@ export function ReceivePage() {
                 bgColor="#ffffff"
                 fgColor="#0a0a0a"
                 marginSize={1}
-                title="钱包收款地址二维码"
+                title={t("receive.qrTitle")}
               />
             ) : (
-              <p className="text-sm text-muted-foreground">连接钱包后显示二维码</p>
+              <p className="text-sm text-muted-foreground">{t("receive.qrEmpty")}</p>
             )}
           </div>
           <Button className="w-full" onClick={copyAddress} disabled={!walletAddress}>
             {copied ? (
               <>
                 <Check className="h-4 w-4" aria-hidden />
-                已复制
+                {t("receive.copied")}
               </>
             ) : (
               <>
                 <Copy className="h-4 w-4" aria-hidden />
-                复制地址
+                {t("receive.copy")}
               </>
             )}
           </Button>

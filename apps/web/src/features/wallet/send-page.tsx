@@ -4,7 +4,7 @@ import { getTxExplorerUrl } from "@xone/config";
 import { ArrowLeftRight, ExternalLink, Eye, LoaderCircle } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -22,8 +22,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useSendAsset } from "@/hooks/use-send-asset";
+import { useI18n } from "@/hooks/use-i18n";
 import { useWalletAccount } from "@/hooks/use-wallet-account";
 import { useWalletBalances } from "@/hooks/use-wallet-balances";
+import type { MessageKey } from "@/lib/i18n/messages";
 import { recordTransferOnServer } from "@/lib/record-transfer";
 import { useA2AStore } from "@/stores/a2a";
 import {
@@ -34,9 +36,10 @@ import {
 } from "@/web3";
 
 /**
- * 转账页：自研表单预览 + Privy 签名发送。
+ * Send flow: preview, then Privy signature.
  */
 export function SendPage() {
+  const { t } = useI18n();
   const { address } = useWalletAccount();
   const { sendAsset } = useSendAsset();
   const queryClient = useQueryClient();
@@ -60,9 +63,9 @@ export function SendPage() {
     try {
       return buildSendTransaction(preview.to, preview.amount, preview.asset);
     } catch (err) {
-      return err instanceof Error ? err : new Error("无法构建交易");
+      return err instanceof Error ? err : new Error(t("send.buildFailed"));
     }
-  }, [preview]);
+  }, [preview, t]);
 
   /**
    * Builds a transaction preview with a live gas estimate, then opens confirm dialog.
@@ -74,12 +77,12 @@ export function SendPage() {
     setPreview(null);
 
     if (!address) {
-      setError("请先连接钱包");
+      setError(t("send.connectFirst"));
       return;
     }
 
     if (Number(amount) > available) {
-      setError(`余额不足（可用 ${available} ${asset}）`);
+      setError(t("send.insufficient", { asset, amount: available }));
       return;
     }
 
@@ -89,7 +92,7 @@ export function SendPage() {
     try {
       buildSendTransaction(trimmedTo, trimmedAmount, asset);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "预览失败");
+      setError(err instanceof Error ? err.message : t("send.previewFailed"));
       return;
     }
 
@@ -105,7 +108,7 @@ export function SendPage() {
     } catch (err) {
       console.warn("[send] fee estimate failed", err);
       setPreview(
-        prepareSendPreview(trimmedTo, trimmedAmount, asset, "暂无法估算，以钱包确认为准"),
+        prepareSendPreview(trimmedTo, trimmedAmount, asset, t("send.feeUnknown")),
       );
     } finally {
       setEstimating(false);
@@ -152,7 +155,7 @@ export function SendPage() {
         queryKey: ["wallet-txs", address.toLowerCase()],
       });
     } catch (err) {
-      setError(friendlySendError(err instanceof Error ? err.message : String(err)));
+      setError(friendlySendError(err instanceof Error ? err.message : String(err), t));
     } finally {
       setSending(false);
     }
@@ -168,17 +171,14 @@ export function SendPage() {
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-6 animate-in">
-      <PageHeader icon={ArrowLeftRight} title="转账" className="justify-center" tone="teal" />
+      <PageHeader icon={ArrowLeftRight} title={t("send.title")} tone="slate" />
 
       <Card className="fade-up">
-        <CardHeader>
-          <CardTitle>转账详情</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <form className="space-y-4" onSubmit={onPreview}>
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="asset">
-                资产
+                {t("send.asset")}
               </label>
               <Select
                 value={asset}
@@ -191,14 +191,18 @@ export function SendPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ETH">ETH（可用 {eth}）</SelectItem>
-                  <SelectItem value="USDC">USDC（可用 {usdc}）</SelectItem>
+                  <SelectItem value="ETH">
+                    {t("send.available", { asset: "ETH", amount: eth })}
+                  </SelectItem>
+                  <SelectItem value="USDC">
+                    {t("send.available", { asset: "USDC", amount: usdc })}
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium" htmlFor="to">
-                收款地址
+                {t("send.recipient")}
               </label>
               <Input
                 id="to"
@@ -209,9 +213,20 @@ export function SendPage() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="amount">
-                金额
-              </label>
+              <div className="flex items-center justify-between gap-3">
+                <label className="text-sm font-medium" htmlFor="amount">
+                  {t("send.amount")}
+                </label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => setAmount(String(available))}
+                >
+                  {t("send.max")}
+                </Button>
+              </div>
               <Input
                 id="amount"
                 inputMode="decimal"
@@ -225,12 +240,12 @@ export function SendPage() {
               {estimating ? (
                 <>
                   <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden />
-                  估算手续费…
+                  {t("send.estimating")}
                 </>
               ) : (
                 <>
                   <Eye className="h-4 w-4" aria-hidden />
-                  预览
+                  {t("send.preview")}
                 </>
               )}
             </Button>
@@ -241,17 +256,17 @@ export function SendPage() {
       <Dialog open={confirmOpen} onOpenChange={onConfirmOpenChange}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>确认转账</DialogTitle>
-            <DialogDescription>请核对以下信息后再发送。</DialogDescription>
+            <DialogTitle>{t("send.confirmTitle")}</DialogTitle>
+            <DialogDescription>{t("send.confirmBody")}</DialogDescription>
           </DialogHeader>
 
           {preview ? (
             <div className="space-y-1 text-sm">
-              <Row label="收款方" value={preview.to} mono />
-              <Row label="资产" value={preview.asset} />
-              <Row label="金额" value={preview.amount} />
-              <Row label="网络" value={preview.chain} />
-              <Row label="预估手续费" value={preview.estimatedFee} />
+              <Row label={t("send.recipientRow")} value={preview.to} mono />
+              <Row label={t("send.assetRow")} value={preview.asset} />
+              <Row label={t("send.amountRow")} value={preview.amount} />
+              <Row label={t("send.network")} value={preview.chain} />
+              <Row label={t("send.fee")} value={preview.estimatedFee} />
             </div>
           ) : null}
 
@@ -270,10 +285,10 @@ export function SendPage() {
                 {sending ? (
                   <>
                     <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden />
-                    发送中…
+                    {t("send.sending")}
                   </>
                 ) : (
-                  "确认并发送"
+                  t("send.confirm")
                 )}
               </Button>
             ) : null}
@@ -284,7 +299,7 @@ export function SendPage() {
               disabled={sending}
               onClick={() => setPreview(null)}
             >
-              取消
+              {t("send.cancel")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -293,7 +308,7 @@ export function SendPage() {
       {txHash ? (
         <Card className="message-in">
           <CardContent className="space-y-2 pt-6 text-sm">
-            <p className="font-medium">交易已提交</p>
+            <p className="font-medium">{t("send.submitted")}</p>
             <a
               href={getTxExplorerUrl(txHash)}
               target="_blank"
@@ -317,19 +332,23 @@ export function SendPage() {
 }
 
 /**
- * Maps common chain errors into user-friendly Chinese copy.
+ * Maps common chain errors into user-facing copy.
  * @param message - Raw error message
+ * @param t - Translator
  */
-function friendlySendError(message: string): string {
+function friendlySendError(
+  message: string,
+  t: (key: MessageKey, vars?: Record<string, string | number>) => string,
+): string {
   const lower = message.toLowerCase();
   if (lower.includes("insufficient funds") || lower.includes("exceeds balance")) {
-    return "余额不足，无法完成转账（可能还包括网络手续费）。";
+    return t("send.errFunds");
   }
   if (lower.includes("user rejected") || lower.includes("denied") || lower.includes("cancelled")) {
-    return "你已取消本次交易。";
+    return t("send.errRejected");
   }
   if (lower.includes("execution reverted")) {
-    return "交易失败。代币合约拒绝了本次转账。";
+    return t("send.errReverted");
   }
   return message;
 }

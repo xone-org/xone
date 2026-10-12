@@ -13,16 +13,48 @@ export type X402Agent = {
   enabled: boolean;
 };
 
+const SELLER = "https://xone-x402-seller.tskwangyi.workers.dev";
+/** PocketFactory Korean public-data APIs (Base Sepolia testnet host). */
+const PF_KR = "https://pf-x402-api-testnet.ahndohun1.workers.dev";
+
 /**
- * Fallback when API is unreachable (matches DB seed).
+ * Fallback when API is unreachable (matches DB seed — consumer-oriented x402).
  */
 export const SHARED_X402_CATALOG: Omit<X402Agent, "enabled">[] = [
   {
     id: "x402-weather",
     name: "天气查询",
-    url: "https://xone-x402-seller.tskwangyi.workers.dev/weather",
+    url: `${SELLER}/weather`,
     description:
       "查询天气信息的 x402 付费接口。用户询问天气、气温、预报时优先选用。",
+  },
+  {
+    id: "x402-bocha-search",
+    name: "Bocha Search",
+    url: `${SELLER}/bocha/search`,
+    description:
+      "Use Bocha web search to answer factual / current-events questions. Pass the question as pay_x402.query. Price is AI-estimated between $0.01–$0.10 USDC per call.",
+  },
+  {
+    id: "x402-text-generate",
+    name: "Text Generate",
+    url: `${SELLER}/api/generate`,
+    description:
+      "Paid text generation demo (x402 upto pricing on Base Sepolia). Use for short generate / sample content requests.",
+  },
+  {
+    id: "x402-kr-news",
+    name: "韩国新闻搜索",
+    url: `${PF_KR}/v1/kr/news/search`,
+    description:
+      "Search Korean news (Hankookilbo) with a natural-language query. Pass the search text as pay_x402.query (?q=). ~$0.01 USDC on Base Sepolia.",
+  },
+  {
+    id: "x402-kr-business-status",
+    name: "韩国企业状态",
+    url: `${PF_KR}/v1/kr/business/status`,
+    description:
+      "Check whether a Korean business registration number (10 digits, b_no) is active/suspended/closed. Pass the 10-digit number as pay_x402.query. ~$0.02 USDC on Base Sepolia.",
   },
 ];
 
@@ -38,16 +70,16 @@ type X402AgentsState = {
    */
   refreshCatalog: () => Promise<void>;
   /**
-   * Toggles enabled flag for a shared catalog entry.
-   * @param id - Catalog entry id
+   * Toggles enabled for a catalog entry.
+   * @param id - Catalog id
    */
   toggleEnabled: (id: string) => void;
 };
 
 /**
- * Builds the visible catalog from shared definitions + user toggles.
+ * Resolves catalog rows with user enable overrides.
  * @param catalog - Platform rows
- * @param enabledById - User enable overrides
+ * @param enabledById - Overrides (missing = enabled)
  */
 function resolveAgents(
   catalog: Omit<X402Agent, "enabled">[],
@@ -60,7 +92,7 @@ function resolveAgents(
 }
 
 /**
- * Shared x402 Agent List. Catalog is admin-managed; enable/disable is per-user.
+ * X402 List catalog store (Service List → X402 List).
  */
 export const useX402AgentsStore = create<X402AgentsState>()(
   persist(
@@ -84,10 +116,9 @@ export const useX402AgentsStore = create<X402AgentsState>()(
                   description: i.description,
                 }))
               : SHARED_X402_CATALOG;
-          const enabledById = get().enabledById;
           set({
             catalog,
-            agents: resolveAgents(catalog, enabledById),
+            agents: resolveAgents(catalog, get().enabledById),
             loading: false,
             error: null,
           });
@@ -95,14 +126,15 @@ export const useX402AgentsStore = create<X402AgentsState>()(
           set({
             loading: false,
             error: err instanceof Error ? err.message : "Failed to load catalog",
-            agents: resolveAgents(get().catalog, get().enabledById),
           });
         }
       },
 
       toggleEnabled(id) {
-        const current = get().agents.find((a) => a.id === id)?.enabled ?? true;
-        const enabledById = { ...get().enabledById, [id]: !current };
+        const enabledById = {
+          ...get().enabledById,
+          [id]: !(get().enabledById[id] ?? true),
+        };
         set({
           enabledById,
           agents: resolveAgents(get().catalog, enabledById),
@@ -110,46 +142,8 @@ export const useX402AgentsStore = create<X402AgentsState>()(
       },
     }),
     {
-      name: "xone-x402-agent-list",
-      /**
-       * Persist enable overrides + last catalog snapshot.
-       * @param persisted - Stored slice
-       * @param current - Current state
-       */
-      merge: (persisted, current) => {
-        const p = persisted as
-          | Partial<X402AgentsState> & {
-              agents?: Array<{ id: string; enabled?: boolean }>;
-            }
-          | undefined;
-
-        const enabledById: Record<string, boolean> = {
-          ...(p?.enabledById ?? {}),
-        };
-        if (Array.isArray(p?.agents)) {
-          for (const row of p.agents) {
-            if (row?.id && typeof row.enabled === "boolean") {
-              enabledById[row.id] = row.enabled;
-            }
-          }
-        }
-
-        const catalog =
-          Array.isArray(p?.catalog) && p.catalog.length > 0
-            ? p.catalog
-            : current.catalog;
-
-        return {
-          ...current,
-          enabledById,
-          catalog,
-          agents: resolveAgents(catalog, enabledById),
-        };
-      },
-      partialize: (state) => ({
-        enabledById: state.enabledById,
-        catalog: state.catalog,
-      }),
+      name: "xone-x402-agents",
+      partialize: (s) => ({ enabledById: s.enabledById }),
     },
   ),
 );

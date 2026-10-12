@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { AgentPayment, DeveloperAgent } from "@xone/types";
+import { useI18n } from "@/hooks/use-i18n";
 import { useWalletAccount } from "@/hooks/use-wallet-account";
 import { useWalletTransactions } from "@/hooks/use-wallet-transactions";
 import {
@@ -16,6 +17,7 @@ const MAIN_WALLET_ID = "main";
  * Loads spending activity across the main wallet, A2A ledger, and agent wallets.
  */
 export function useSpendingActivity() {
+  const { t } = useI18n();
   const { address } = useWalletAccount();
   const owner = address?.toLowerCase() ?? "";
   const { rows, isLoading: ledgerLoading } = useWalletTransactions();
@@ -52,33 +54,33 @@ export function useSpendingActivity() {
     const next: SpendingEvent[] = [];
 
     for (const row of rows) {
-      const mapped = mapLedgerRow(row, MAIN_WALLET_ID, "主钱包");
+      const mapped = mapLedgerRow(row, MAIN_WALLET_ID, t("spending.mainWallet"), t);
       if (mapped) next.push(mapped);
     }
 
     for (const row of a2aLedger ?? []) {
       if (row.kind !== "a2a") continue;
-      const mapped = mapLedgerRow(row, MAIN_WALLET_ID, "主钱包");
+      const mapped = mapLedgerRow(row, MAIN_WALLET_ID, t("spending.mainWallet"), t);
       if (mapped) next.push(mapped);
     }
 
     for (const bundle of paymentsQuery.data ?? []) {
       for (const pay of bundle.payments) {
-        const mapped = mapAgentPayment(pay, bundle.agent);
+        const mapped = mapAgentPayment(pay, bundle.agent, t("activity.servicePayment"));
         if (mapped) next.push(mapped);
       }
     }
 
     return dedupeEvents(next);
-  }, [rows, a2aLedger, paymentsQuery.data]);
+  }, [rows, a2aLedger, paymentsQuery.data, t]);
 
   const wallets = useMemo((): WalletOption[] => {
-    const options: WalletOption[] = [{ id: MAIN_WALLET_ID, label: "主钱包" }];
+    const options: WalletOption[] = [{ id: MAIN_WALLET_ID, label: t("spending.mainWallet") }];
     for (const agent of agents) {
       options.push({ id: agent.id, label: agent.name });
     }
     return options;
-  }, [agents]);
+  }, [agents, t]);
 
   return {
     events,
@@ -100,6 +102,7 @@ function mapLedgerRow(
   row: LedgerRecord,
   walletId: string,
   walletLabel: string,
+  t: (key: "activity.received" | "activity.transfer") => string,
 ): SpendingEvent | null {
   if (row.asset !== "USDC") return null;
   const amount = Number(row.amount);
@@ -108,10 +111,10 @@ function mapLedgerRow(
 
   const service =
     row.kind === "a2a"
-      ? row.title || row.counterparty || "A2A"
+      ? presentServiceName(row.title || row.counterparty, "A2A")
       : row.kind === "receive"
-        ? "收款"
-        : row.title || row.counterparty || "转账";
+        ? t("activity.received")
+        : presentServiceName(row.title || row.counterparty, t("activity.transfer"));
 
   return {
     id: `ledger:${row.id}`,
@@ -132,6 +135,7 @@ function mapLedgerRow(
 function mapAgentPayment(
   pay: AgentPayment,
   agent: DeveloperAgent,
+  fallback: string,
 ): SpendingEvent | null {
   if ((pay.asset || "USDC").toUpperCase() !== "USDC") return null;
   if (pay.status === "failed" || pay.status === "rejected" || pay.status === "cancelled") {
@@ -147,8 +151,37 @@ function mapAgentPayment(
     direction: "out",
     walletId: agent.id,
     walletLabel: agent.name,
-    service: pay.merchant || pay.resource || shortAddress(pay.recipient) || "机器支付",
+    service: presentServiceName(pay.merchant || pay.resource, fallback),
   };
+}
+
+const GENERIC_SERVICE_LABELS = new Set([
+  "转账",
+  "收款",
+  "机器支付",
+  "Transfer",
+  "Received",
+  "Service payment",
+]);
+
+/**
+ * Uses a human service name. Hosts, URLs, and generic placeholders stay out of the title.
+ * @param raw - Merchant, resource, or counterparty
+ * @param fallback - Label when the raw value is a host, empty, or a placeholder
+ */
+function presentServiceName(raw: string | null | undefined, fallback: string): string {
+  const value = (raw ?? "").trim();
+  if (!value || isHostLike(value) || GENERIC_SERVICE_LABELS.has(value)) return fallback;
+  return value;
+}
+
+/**
+ * Whether a label is a URL or bare hostname.
+ * @param value - Candidate service label
+ */
+function isHostLike(value: string): boolean {
+  const bare = value.replace(/^https?:\/\//, "").split(/[/?#]/)[0] ?? "";
+  return bare.includes(".") && !bare.includes(" ");
 }
 
 /**
@@ -164,13 +197,4 @@ function dedupeEvents(events: SpendingEvent[]): SpendingEvent[] {
     out.push(event);
   }
   return out;
-}
-
-/**
- * Shortens a hex address for service labels.
- * @param address - Full address
- */
-function shortAddress(address: string): string {
-  if (!address || address.length < 12) return address || "";
-  return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }

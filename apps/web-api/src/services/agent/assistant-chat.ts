@@ -2,9 +2,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createDeepSeek } from "@ai-sdk/deepseek";
 import {
   convertToModelMessages,
+  createUIMessageStreamResponse,
   extractReasoningMiddleware,
   stepCountIs,
   streamText,
+  toUIMessageStream,
   tool,
   wrapLanguageModel,
   type UIMessage,
@@ -330,10 +332,13 @@ export async function createAssistantChatResponse(
           return { ok: false, error: "x402 服务未找到或未启用" };
         }
 
-        if (/bocha|search/i.test(service.id + service.name) && !query?.trim()) {
+        if (
+          /bocha|kr-news|kr-business|search/i.test(service.id + service.name) &&
+          !query?.trim()
+        ) {
           return {
             ok: false,
-            error: "Bocha Search 需要 query（用户问题）",
+            error: "该搜索/查询类服务需要 query（用户问题或企业注册号）",
           };
         }
 
@@ -441,7 +446,7 @@ export async function createAssistantChatResponse(
     middleware: extractReasoningMiddleware({ tagName: "think" }),
   });
 
-  const modelMessages = await convertToModelMessages(messages);
+  const modelMessages = await convertToModelMessages(messages, { tools });
 
   const catalogHeading =
     locale === "en" ? "## Enabled x402 catalog" : "## 已启用 x402 目录";
@@ -452,7 +457,7 @@ export async function createAssistantChatResponse(
 
   const result = streamText({
     model,
-    system: `${buildSystemPrompt(locale)}
+    instructions: `${buildSystemPrompt(locale)}
 
 ${catalogHeading}
 ${catalogJson}
@@ -465,8 +470,17 @@ ${walletsJson}`,
     temperature: 0.3,
   });
 
-  return result.toUIMessageStreamResponse({
-    sendReasoning: true,
-    onError: (error) => (error instanceof Error ? error.message : String(error)),
+  // AI SDK 7: result.toUIMessageStreamResponse() is deprecated and skips
+  // message-id injection unless originalMessages + generateMessageId are set.
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      tools,
+      originalMessages: messages,
+      generateMessageId: () => crypto.randomUUID(),
+      sendReasoning: true,
+      onError: (error) =>
+        error instanceof Error ? error.message : String(error),
+    }),
   });
 }

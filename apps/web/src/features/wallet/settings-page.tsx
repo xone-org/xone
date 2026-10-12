@@ -1,4 +1,4 @@
-import { CirclePlay, Languages, LogOut, Settings, User } from "lucide-react";
+import { Check, CirclePlay, Copy, LogOut, Settings, User } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PageHeader } from "@/components/layout/page-header";
@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { GettingStartedTourDialog } from "@/features/wallet/getting-started-tour";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useI18n } from "@/hooks/use-i18n";
 import { useWalletAccount } from "@/hooks/use-wallet-account";
 import { queryClient } from "@/lib/query-client";
@@ -23,13 +24,14 @@ import { useA2AStore } from "@/stores/a2a";
  */
 export function SettingsPage() {
   const navigate = useNavigate();
-  const { t, locale, toggleLocale } = useI18n();
+  const { t, locale, setLocale } = useI18n();
   const { address, loginMethod, logout } = useWalletAccount();
   const switchWallet = useA2AStore((s) => s.switchWallet);
 
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const displayLoginMethod =
     loginMethod === "Privy embedded wallet"
@@ -52,8 +54,18 @@ export function SettingsPage() {
     }
   }
 
+  /**
+   * Copies the wallet address.
+   */
+  async function copyAddress() {
+    if (!address) return;
+    await navigator.clipboard.writeText(address);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1500);
+  }
+
   return (
-    <div className="mx-auto max-w-2xl space-y-6 animate-in md:mx-0">
+    <div className="mx-auto max-w-2xl space-y-6 animate-in">
       <PageHeader icon={Settings} title={t("settings.title")} tone="slate" />
 
       <Card className="fade-up">
@@ -90,9 +102,20 @@ export function SettingsPage() {
                 {address ?? "—"}
               </p>
             </div>
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-muted">
-              <User className="h-4 w-4" strokeWidth={1.75} aria-hidden />
-            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!address}
+              onClick={() => void copyAddress()}
+            >
+              {copied ? (
+                <Check className="h-4 w-4" aria-hidden />
+              ) : (
+                <Copy className="h-4 w-4" aria-hidden />
+              )}
+              {copied ? t("settings.copied") : t("settings.copyAddress")}
+            </Button>
           </div>
 
           <div className="flex items-center justify-between gap-4 border-b border-border pb-4">
@@ -105,25 +128,37 @@ export function SettingsPage() {
           </div>
 
           <div className="flex items-center justify-between gap-4 border-b border-border pb-4">
-            <div>
-              <p className="text-xs text-muted-foreground">
-                {t("settings.language")}
-              </p>
-              <p className="mt-1 text-sm font-medium">
-                {locale === "zh"
-                  ? t("settings.languageZh")
-                  : t("settings.languageEn")}
-              </p>
-            </div>
-            <Button type="button" variant="outline" onClick={toggleLocale}>
-              <Languages className="h-4 w-4" aria-hidden />
-              {locale === "zh"
-                ? t("settings.switchToEn")
-                : t("settings.switchToZh")}
-            </Button>
+            <p className="text-xs text-muted-foreground">{t("settings.language")}</p>
+            <ToggleGroup
+              type="single"
+              variant="outline"
+              size="sm"
+              value={locale}
+              onValueChange={(value) => {
+                if (value === "en" || value === "zh") setLocale(value);
+              }}
+            >
+              <ToggleGroupItem
+                value="en"
+                className="px-3 data-[state=on]:bg-foreground data-[state=on]:text-background"
+              >
+                {t("settings.languageEn")}
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="zh"
+                className="px-3 data-[state=on]:bg-foreground data-[state=on]:text-background"
+              >
+                {t("settings.languageZh")}
+              </ToggleGroupItem>
+            </ToggleGroup>
           </div>
 
-          <Button type="button" className="w-full" onClick={() => setLogoutOpen(true)}>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => setLogoutOpen(true)}
+          >
             <LogOut className="h-4 w-4" aria-hidden />
             {t("settings.logout")}
           </Button>

@@ -2,8 +2,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createDeepSeek } from "@ai-sdk/deepseek";
 import {
   convertToModelMessages,
+  createUIMessageStreamResponse,
   stepCountIs,
   streamText,
+  toUIMessageStream,
   tool,
   type UIMessage,
 } from "ai";
@@ -131,18 +133,25 @@ export async function createDeveloperAgentChatResponse(
     baseURL,
   });
 
-  const modelMessages = await convertToModelMessages(messages);
+  const modelMessages = await convertToModelMessages(messages, { tools });
 
   const result = streamText({
     model: deepseek.chat(env.llmModel || "deepseek-chat"),
-    system: SYSTEM_PROMPT,
+    instructions: SYSTEM_PROMPT,
     messages: modelMessages,
     tools,
     stopWhen: stepCountIs(6),
     temperature: 0.3,
   });
 
-  return result.toUIMessageStreamResponse({
-    onError: (error) => (error instanceof Error ? error.message : String(error)),
+  return createUIMessageStreamResponse({
+    stream: toUIMessageStream({
+      stream: result.stream,
+      tools,
+      originalMessages: messages,
+      generateMessageId: () => crypto.randomUUID(),
+      onError: (error) =>
+        error instanceof Error ? error.message : String(error),
+    }),
   });
 }

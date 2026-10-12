@@ -1,20 +1,37 @@
 <!doctype html>
 <html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>X-ONE钱包</title>
-    <link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="any" />
-    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>X-ONE钱包</title>
+  <link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="any" />
+  <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <script>
+    (function (d, t) {
+      var BASE_URL = "https://support.1996tsk.top";
+      var g = d.createElement(t), s = d.getElementsByTagName(t)[0];
+      g.src = BASE_URL + "/packs/js/sdk.js";
+      g.async = true;
+      s.parentNode.insertBefore(g, s);
+      g.onload = function () {
+        window.chatwootSDK.run({
+          websiteToken: '8L8ZzbYu7T6EjtNXEUazzs1p',
+          baseUrl: BASE_URL
+        })
+      }
+    })(document, "script");
+  </script>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>

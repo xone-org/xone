@@ -9,7 +9,6 @@ import {
   MessageSquare,
   Settings,
   Wallet,
-  Zap,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
@@ -70,33 +69,14 @@ const navEntries: NavEntry[] = [
   },
   {
     kind: "group",
-    id: "lists",
+    id: "services",
     labelKey: "nav.serviceList",
     icon: LayoutList,
     children: [
       { to: "/app/agents/x402", labelKey: "nav.x402List" },
       { to: "/app/agents/list", labelKey: "nav.agentList" },
-    ],
-  },
-  {
-    kind: "group",
-    id: "developer-wallet",
-    labelKey: "nav.developerWallet",
-    icon: Bot,
-    children: [
-      { to: "/app/developers/wallet", labelKey: "nav.myWallet" },
-      { to: "/app/developers", labelKey: "nav.createWallet", end: true },
-    ],
-  },
-  {
-    kind: "group",
-    id: "a2a",
-    labelKey: "nav.a2a",
-    icon: Zap,
-    children: [
-      { to: "/app/a2a/fund", labelKey: "nav.a2aFund" },
       { to: "/app/merchants", labelKey: "nav.a2aPay" },
-      { to: "/app/ledger/a2a", labelKey: "nav.a2aLedger" },
+      { to: "/app/a2a/fund", labelKey: "nav.a2aFund" },
     ],
   },
   { kind: "link", to: "/app/chat", labelKey: "nav.chat", icon: MessageSquare },
@@ -109,6 +89,17 @@ const navEntries: NavEntry[] = [
       { to: "/app/ledger/payments", labelKey: "nav.ledgerTransfer" },
       { to: "/app/ledger/receive", labelKey: "nav.ledgerReceive" },
       { to: "/app/ledger/pay", labelKey: "nav.ledgerPay" },
+      { to: "/app/ledger/a2a", labelKey: "nav.a2aLedger" },
+    ],
+  },
+  {
+    kind: "group",
+    id: "developer-wallet",
+    labelKey: "nav.developerWallet",
+    icon: Bot,
+    children: [
+      { to: "/app/developers/wallet", labelKey: "nav.myWallet" },
+      { to: "/app/developers", labelKey: "nav.createWallet", end: true },
     ],
   },
   { kind: "link", to: "/app/settings", labelKey: "nav.settings", icon: Settings },

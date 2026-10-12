@@ -6,8 +6,6 @@ import {
   Home,
   QrCode,
   Sparkles,
-  Wallet,
-  WalletCards,
 } from "lucide-react";
 import { AccountMenu } from "@/components/auth/account-menu";
 import { AppSidebarNav } from "@/components/layout/app-sidebar-nav";
@@ -76,7 +74,7 @@ export function AppLayout() {
       </Sidebar>
 
       <SidebarInset className="h-svh overflow-hidden">
-        <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-white/80 px-4 backdrop-blur-md md:px-6">
+        <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border bg-background px-4 md:px-6">
           <div className="flex min-w-0 items-center gap-2">
             <SidebarTrigger className="-ml-1" />
             <div className="min-w-0 md:hidden">
@@ -91,25 +89,26 @@ export function AppLayout() {
             <p className="hidden text-xs text-muted-foreground md:block">{appChainLabel}</p>
           </div>
 
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-            <div className="balance-tick rounded-lg border border-border bg-muted/60 px-2.5 py-1.5 text-right">
-              <p className="flex items-center justify-end gap-1 text-[10px] leading-none text-muted-foreground">
-                <Wallet className="h-3 w-3" aria-hidden />
+          <div className="flex shrink-0 items-center justify-end gap-3">
+            <div className="balance-tick text-right">
+              <p className="text-[10px] leading-none text-muted-foreground">
                 {t("layout.wallet")}
               </p>
-              <p className="mt-1 font-mono text-xs font-semibold">
+              <p className="mt-1 font-mono text-sm font-semibold tabular-nums">
                 {usdc.toFixed(2)} USDC
               </p>
             </div>
-            <div className="balance-tick rounded-lg border border-border bg-muted/60 px-2.5 py-1.5 text-right">
-              <p className="flex items-center justify-end gap-1 text-[10px] leading-none text-muted-foreground">
-                <WalletCards className="h-3 w-3" aria-hidden />
-                {t("layout.a2aSpendable")}
-              </p>
-              <p className="mt-1 font-mono text-xs font-semibold">
-                {a2aBalance.toFixed(2)} USDC
-              </p>
-            </div>
+            <p
+              className={
+                a2aBalance > 0
+                  ? "hidden font-mono text-xs font-medium tabular-nums sm:block"
+                  : "hidden font-mono text-xs tabular-nums text-muted-foreground sm:block"
+              }
+            >
+              {t("layout.serviceSpendableInline", {
+                amount: a2aBalance.toFixed(2),
+              })}
+            </p>
             <AccountMenu />
           </div>
         </header>
